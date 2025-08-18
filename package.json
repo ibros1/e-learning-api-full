@@ -22,7 +22,7 @@
     "start": "node dist/index.js",
     "dev": "nodemon src/index.ts",
     "build": "tsc && prisma generate",
-    "vercel-build": "npm run build",
+    "vercel-build": "npx prisma generate && tsc --noEmit false",
     "migrate": "npx prisma migrate dev"
   },
   "devDependencies": {
