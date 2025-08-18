@@ -24,7 +24,7 @@ app.use(
     origin: [
       "http://localhost:5173",
       "http://localhost:5174",
-      "https://e-learning-client-git-main-cyphers-projects.vercel.app/",
+      "https://e-learning-client-opal.vercel.app",
     ],
     credentials: true,
   })
