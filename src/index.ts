@@ -15,7 +15,7 @@ env.config();
 const app = express();
 // Add this at the top:
 import { VercelRequest, VercelResponse } from "@vercel/node";
-import { multerErrorHandler } from "./middleware/limit.image.middleWare";
+import { multerErrorHandler } from "../middleware/limit.image.middleWare";
 app.use(express.json());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));

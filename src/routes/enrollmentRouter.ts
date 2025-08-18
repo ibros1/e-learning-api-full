@@ -6,9 +6,9 @@ import {
   getOneEnroll,
   updateEnrollement,
 } from "../controllers/enrollementController";
-import { authenticate } from "../middleware/authenthicate.middleware";
-import { validtionMidlleware } from "../middleware/validation";
-import { authorize } from "../middleware/authorize";
+import { authenticate } from "../../middleware/authenthicate.middleware";
+import { validtionMidlleware } from "../../middleware/validation";
+import { authorize } from "../../middleware/authorize";
 const router = Router();
 
 router.post("/create", createEnrollement);

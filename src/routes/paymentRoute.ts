@@ -6,8 +6,8 @@ import {
   getPaymentById,
   updatePayment,
 } from "../controllers/paymentController";
-import { authenticate } from "../middleware/authenthicate.middleware";
-import { authorize } from "../middleware/authorize";
+import { authenticate } from "../../middleware/authenthicate.middleware";
+import { authorize } from "../../middleware/authorize";
 const router = Router();
 
 router.post("/create", authenticate, createPayment);

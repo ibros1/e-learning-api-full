@@ -3,7 +3,7 @@ import { Request, Response } from "express";
 import {
   icreatedEnrollment,
   iUpdatedEnrollment,
-} from "../types/enrollements.interface";
+} from "../../types/enrollements.interface";
 const prisma = new PrismaClient();
 
 export const createEnrollement = async (req: Request, res: Response) => {

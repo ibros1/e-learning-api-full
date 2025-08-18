@@ -9,12 +9,12 @@ import {
   updateRole,
   updateUser,
 } from "../controllers/userController";
-import { loginUserSchema, registerUserSchema } from "../schema/user";
-import { validtionMidlleware } from "../middleware/validation";
-import { authenticate } from "../middleware/authenthicate.middleware";
-import { authorize } from "../middleware/authorize";
+import { loginUserSchema, registerUserSchema } from "../../schema/user";
+import { validtionMidlleware } from "../../middleware/validation";
+import { authenticate } from "../../middleware/authenthicate.middleware";
+import { authorize } from "../../middleware/authorize";
 
-import { multerErrorHandler } from "../middleware/limit.image.middleWare";
+import { multerErrorHandler } from "../../middleware/limit.image.middleWare";
 import { userUpload } from "../utils/cloudinary";
 const router = Router();
 
