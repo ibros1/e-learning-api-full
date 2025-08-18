@@ -16,7 +16,7 @@ import multer from "multer";
 import path from "path";
 import { courseUpload } from "../utils/cloudinary";
 import { authorize } from "../../middleware/authorize";
-import { extractFileNames } from "../../middleware/extractFileNames";
+
 import { multerErrorHandler } from "../../middleware/limit.image.middleWare";
 // Configure storage for uploaded files (adjust destination as needed)
 

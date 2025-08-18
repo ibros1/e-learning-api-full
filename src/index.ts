@@ -1,6 +1,6 @@
 import express, { NextFunction, Request } from "express";
 import env from "dotenv";
-import userRoute from "./routes/userRoute";
+import userRoute from "./routes/uerRoute";
 import courseRoute from "./routes/courseRoute";
 import lessonRoute from "./routes/lessonRoute";
 import lessonProgress from "./routes/lessonProggress";
