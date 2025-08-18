@@ -3,7 +3,7 @@ import { v2 as cloudinary } from "cloudinary";
 import multer from "multer";
 import { Request } from "express";
 import CloudinaryStorage from "multer-storage-cloudinary";
-import { AuthRequest } from "../../types/request";
+import { AuthRequest } from "../types/request";
 
 // Configure Cloudinary
 cloudinary.config({

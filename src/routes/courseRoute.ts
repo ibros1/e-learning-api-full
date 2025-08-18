@@ -9,15 +9,15 @@ import {
 import {
   registerCourseSchema,
   UpdateCourseSchema,
-} from "../../schema/courseSchema";
-import { validtionMidlleware } from "../../middleware/validation";
-import { authenticate } from "../../middleware/authenthicate.middleware";
+} from "../schema/courseSchema";
+import { validtionMidlleware } from "../middleware/validation";
+import { authenticate } from "../middleware/authenthicate.middleware";
 import multer from "multer";
 import path from "path";
 import { courseUpload } from "../utils/cloudinary";
-import { authorize } from "../../middleware/authorize";
+import { authorize } from "../middleware/authorize";
 
-import { multerErrorHandler } from "../../middleware/limit.image.middleWare";
+import { multerErrorHandler } from "../middleware/limit.image.middleWare";
 // Configure storage for uploaded files (adjust destination as needed)
 
 const router = Router();

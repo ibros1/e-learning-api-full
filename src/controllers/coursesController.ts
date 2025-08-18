@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
-import { iCreatedCourse, iUpdatedCourse } from "../../types/course.interface";
-import { AuthRequest } from "../../types/request";
+import { iCreatedCourse, iUpdatedCourse } from "../types/course.interface";
+import { AuthRequest } from "../types/request";
 import { saveBase64Image } from "../constants/base64Img";
 import { deleteFromCloudinary, getPublicIdFromUrl } from "../utils/cloudinary";
 

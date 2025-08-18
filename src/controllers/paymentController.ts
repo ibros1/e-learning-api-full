@@ -5,10 +5,7 @@ import {
   PrismaClient,
 } from "@prisma/client";
 import { Request, Response } from "express";
-import {
-  iCreatedPayment,
-  iUpdatedPayment,
-} from "../../types/payment.interface";
+import { iCreatedPayment, iUpdatedPayment } from "../types/payment.interface";
 const prisma = new PrismaClient();
 
 export const createPayment = async (req: Request, res: Response) => {

@@ -1,9 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
-import {
-  iCreatedChapter,
-  iUpdatedChapter,
-} from "../../types/chapter.interface";
+import { iCreatedChapter, iUpdatedChapter } from "../types/chapter.interface";
 const prisma = new PrismaClient();
 
 export const createChapter = async (req: Request, res: Response) => {
@@ -50,9 +47,7 @@ export const createChapter = async (req: Request, res: Response) => {
       },
       include: {
         courses: true,
-        
       },
-      
     });
     res.status(200).json({
       isSuccess: false,

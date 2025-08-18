@@ -1,8 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 
 import { Request, Response } from "express";
-import { iCreatedLesson, iUpdatedLesson } from "../../types/lesson.interface";
-import { AuthRequest } from "../../types/request";
+import { iCreatedLesson, iUpdatedLesson } from "../types/lesson.interface";
+import { AuthRequest } from "../types/request";
 
 const prisma = new PrismaClient();
 
