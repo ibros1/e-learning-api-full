@@ -9,16 +9,18 @@
           "src/**",
           "prisma/**",
           "middleware/**",
-          "uploads/**",
-          "constants/**",
-          "controllers/**",
           "routes/**",
-          "types/**"
+          "constants/**",
+          "controllers/**"
         ]
       }
     }
   ],
   "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "src/index.ts"
+    },
     {
       "src": "/(.*)",
       "dest": "src/index.ts"

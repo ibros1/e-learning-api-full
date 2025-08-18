@@ -13,6 +13,8 @@ import multer from "multer";
 import { multerErrorHandler } from "../middleware/limit.image.middleWare";
 env.config();
 const app = express();
+// Add this at the top:
+import { VercelRequest, VercelResponse } from "@vercel/node";
 app.use(express.json());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
@@ -41,7 +43,10 @@ app.use("/payments", paymentRoute);
 app.use("/lessons/progress", lessonProgress);
 // **Place multer error handler after all routes**
 app.use(multerErrorHandler);
-
+module.exports = (req: VercelRequest, res: VercelResponse) => {
+  // Handle the request with Express
+  app(req, res);
+};
 app.listen(PORT, () => {
   console.log(`your server is running on ${PORT}`);
 });
