@@ -25,6 +25,7 @@
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/multer": "^2.0.0",
+    "@vercel/node": "^2.3.0",
     "i": "^0.3.7",
     "npm": "^11.4.2",
     "prisma": "^6.4.1",
