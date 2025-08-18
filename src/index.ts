@@ -43,10 +43,10 @@ app.use("/payments", paymentRoute);
 app.use("/lessons/progress", lessonProgress);
 // **Place multer error handler after all routes**
 app.use(multerErrorHandler);
-module.exports = (req: VercelRequest, res: VercelResponse) => {
-  // Handle the request with Express
-  app(req, res);
-};
+// module.exports = (req: VercelRequest, res: VercelResponse) => {
+//   // Handle the request with Express
+//   app(req, res);
+// };
 app.listen(PORT, () => {
   console.log(`your server is running on ${PORT}`);
 });
