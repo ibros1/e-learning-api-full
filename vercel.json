@@ -8,10 +8,12 @@
         "includeFiles": [
           "src/**",
           "prisma/**",
+          "middleware/**",
+          "uploads/**",
           "constants/**",
           "controllers/**",
           "routes/**",
-          ".env"
+          "types/**"
         ]
       }
     }
