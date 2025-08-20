@@ -11,7 +11,7 @@ import argon2, { hash } from "argon2";
 import jwt from "jsonwebtoken";
 import { AuthRequest } from "../../types/request";
 import { generateWebToken } from "../../helpers/jwt";
-import { saveBase64Image } from "../constants/base64Img";
+
 import { deleteFromCloudinary, getPublicIdFromUrl } from "../utils/cloudinary";
 const Prisma = new PrismaClient();
 // Helper to save base64 image
