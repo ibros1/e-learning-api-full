@@ -311,6 +311,14 @@ export const deleteLesson = async (req: Request, res: Response) => {
         id: lessonId,
       },
     });
+    await prisma.lessonProgress.deleteMany({
+  where: { lessonId: 'da8545d5-8e1d-45ed-92f2-7d62bd0653b3' },
+});
+
+await prisma.lessons.delete({
+  where: { id: 'da8545d5-8e1d-45ed-92f2-7d62bd0653b3' },
+});
+
     if (!lesson) {
       res.status(400).json({
         isSuccess: false,
