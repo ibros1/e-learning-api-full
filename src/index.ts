@@ -29,7 +29,7 @@ app.use(
     origin: [
       "http://localhost:5173",
       "http://localhost:5174",
-      "https://e-learning-client-opal.vercel.app",
+      "https://e-learning-client-full.vercel.app/",
     ],
     credentials: true,
   })
