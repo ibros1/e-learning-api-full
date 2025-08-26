@@ -30,7 +30,7 @@ app.use(
       "http://localhost:5173",
       "http://localhost:5174",
       "https://e-learning-client-full.vercel.app",
-      "https://e-learning-client-full.vercel.app"
+      "https://e-learning-client-full-git-main-cyphers-projects.vercel.app"
     ],
     credentials: true,
   })
