@@ -104,7 +104,7 @@ model lessonProgress {
   updatedAt   DateTime @updatedAt
 
   user   user    @relation(fields: [userId], references: [id])
-  lesson lessons @relation(fields: [lessonId], references: [id])
+  lesson lessons @relation(fields: [lessonId], references: [id],  onDelete: Cascade)
   course course  @relation(fields: [courseId], references: [id])
 
   @@unique([userId, lessonId]) // prevent duplicate tracking
