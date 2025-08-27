@@ -233,7 +233,7 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
     const coverPhoto = files?.coverPhoto?.[0]?.path;
 
     if (
-      !data.id ||
+      +!data.id ||
       !data.username ||
       !data.email ||
       !data.fullName ||
