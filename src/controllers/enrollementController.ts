@@ -4,6 +4,8 @@ import {
   icreatedEnrollment,
   iUpdatedEnrollment,
 } from "../../types/enrollements.interface";
+import { sendInvoiceEmail } from "../utils/mailer";
+import { generateInvoiceTemplate } from "../utils/invoiceTemplate";
 const prisma = new PrismaClient();
 
 export const createEnrollement = async (req: Request, res: Response) => {
@@ -66,10 +68,26 @@ export const createEnrollement = async (req: Request, res: Response) => {
             full_name: true,
             profilePhoto: true,
             role: true,
+            email: true,
           },
         },
       },
     });
+
+    // ✅ Send invoice email
+    const invoiceHtml = generateInvoiceTemplate({
+      fullName: enrollement.users.full_name,
+      courseImage: enrollement.course.course_img,
+      courseTitle: enrollement.course.title,
+      price: enrollement.course.price,
+      status: enrollement.status,
+    });
+
+    await sendInvoiceEmail(
+      enrollement.users.email,
+      `Your Invoice for ${enrollement.course.title}`,
+      invoiceHtml
+    );
 
     res.status(200).json({
       isSuccess: true,
@@ -143,15 +161,34 @@ export const updateEnrollement = async (req: Request, res: Response) => {
       return;
     }
 
+    // After updating the enrollment
+
     const completedEnrollement = await prisma.enrollment.update({
-      where: {
-        id: data.id,
-      },
+      where: { id: data.id },
       data: {
         status: data.status,
         is_enrolled: data.isEnrolled,
       },
+      include: {
+        users: { select: { full_name: true, email: true } },
+        course: true,
+      },
     });
+
+    // ✅ Send invoice email on update
+    const invoiceHtml = generateInvoiceTemplate({
+      fullName: completedEnrollement.users.full_name,
+      courseImage: completedEnrollement.course.course_img,
+      courseTitle: completedEnrollement.course.title,
+      price: completedEnrollement.course.price,
+      status: completedEnrollement.status,
+    });
+
+    await sendInvoiceEmail(
+      completedEnrollement.users.email,
+      `Update: ${completedEnrollement.course.title} - ${completedEnrollement.status}`,
+      invoiceHtml
+    );
 
     res.status(200).json({
       isSuccess: true,
