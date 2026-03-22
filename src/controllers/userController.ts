@@ -18,62 +18,33 @@ const Prisma = new PrismaClient();
 
 export const createUser = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const data = req.body;
-    console.log(data);
+
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
     // Get Cloudinary URLs
     const profilePhoto = files?.profilePhoto?.[0]?.path;
     const coverPhoto = files?.coverPhoto?.[0]?.path;
 
-    // Validate required fields
-    const requiredFields = [
-      "email",
-      "password",
-      "username",
-      "fullName",
-      "phone_number",
-      "comfirmPassword",
-      "sex",
-    ];
-
-    const missingFields = requiredFields.filter((field) => !data[field]);
-
-    if (missingFields.length > 0 || !profilePhoto || !coverPhoto) {
+    // // Validate all required fields
+    if (
+      !data.email ||
+      !data.password ||
+      !data.username ||
+      !data.fullName ||
+      !data.phone_number ||
+      !data.comfirmPassword ||
+      !data.sex
+    ) {
       res.status(400).json({
         isSuccess: false,
-        message: `Missing required fields: ${[
-          ...missingFields,
-          !profilePhoto ? "profilePhoto" : "",
-          !coverPhoto ? "coverPhoto" : "",
-        ]
-          .filter(Boolean)
-          .join(", ")}`,
+        message: "Please provide all required fields",
       });
       return;
     }
-
-    // // Validate all required fields
-    // if (
-    //   !data.email ||
-    //   !data.password ||
-    //   !data.username ||
-    //   !data.fullName ||
-    //   !data.phone_number ||
-    //   !data.comfirmPassword ||
-    //   !profilePhoto ||
-    //   !coverPhoto ||
-    //   !data.sex
-    // ) {
-    //   res.status(400).json({
-    //     isSuccess: false,
-    //     message: "Please provide all required fields",
-    //   });
-    //   return;
-    // }
 
     // Check password match
     if (data.password !== data.comfirmPassword) {
@@ -159,12 +130,20 @@ export const createUser = async (
 
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
-    const users = await Prisma.user.findMany({
-      include: {
-        enrollements: true,
-        courses: true,
-      },
-    });
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const perPage = Math.max(1, parseInt(req.query.limit as string) || 10);
+
+    const [users, total] = await Promise.all([
+      Prisma.user.findMany({
+        skip: (page - 1) * perPage,
+        take: perPage,
+        include: {
+          enrollements: true,
+          courses: true,
+        },
+      }),
+      Prisma.user.count(),
+    ]);
     if (!users) {
       res.status(404).json({
         isSuccess: false,
@@ -178,6 +157,10 @@ export const getAllUsers = async (req: Request, res: Response) => {
       isSuccess: true,
       message: "successfully fetched!",
       users: sanitizedUsers,
+      total,
+      page,
+      perPage,
+      totalPages: Math.ceil(total / perPage),
     });
   } catch (error) {
     console.error(error);
@@ -222,7 +205,6 @@ export const getOneUser = async (req: Request, res: Response) => {
 export const updateUser = async (req: AuthRequest, res: Response) => {
   try {
     const data = req.body as iUpdatedUser;
-    console.log(data);
 
     const files = req.files as {
       [fieldname: string]: Express.Multer.File[];
@@ -258,8 +240,6 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    const hashedPassword = await argon2.hash(data.password);
-
     const updatedUser = await Prisma.user.update({
       where: { id: Number(data.id) },
       data: {
@@ -267,7 +247,7 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
         email: data.email,
         full_name: data.fullName,
         phone_number: data.phone_number,
-        password: hashedPassword,
+        // password: hashedPassword,
         ...(profilePhoto && { profilePhoto }),
         ...(coverPhoto && { coverPhoto }),
       },
@@ -301,8 +281,8 @@ export const deleteUser = async (req: Request, res: Response) => {
     if (user) {
       // Delete user's images from Cloudinary
       await Promise.all([
-        deleteFromCloudinary(getPublicIdFromUrl(user.profilePhoto)!),
-        deleteFromCloudinary(getPublicIdFromUrl(user.coverPhoto)!),
+        deleteFromCloudinary(getPublicIdFromUrl(user.profilePhoto!)!),
+        deleteFromCloudinary(getPublicIdFromUrl(user.coverPhoto!)!),
       ]);
     }
 
@@ -472,7 +452,8 @@ export const updateRole = async (req: Request, res: Response) => {
             title: true,
             description: true,
             is_published: true,
-            price: true,
+            price_dlr: true,
+            price_shl: true,
             created_at: true,
             updated_at: true,
             chapters: true,
@@ -545,5 +526,51 @@ export const getMe = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error("getMe error:", error);
     res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+export const resetUserPassword = async (req: Request, res: Response) => {
+  try {
+    const { userId, newPassword } = req.body;
+
+    if (!userId || !newPassword) {
+      res.status(400).json({
+        isSuccess: false,
+        message: "User ID and new password are required.",
+      });
+      return;
+    }
+
+    const user = await Prisma.user.findUnique({
+      where: { id: Number(userId) },
+    });
+
+    if (!user) {
+      res.status(404).json({
+        isSuccess: false,
+        message: "User not found.",
+      });
+      return;
+    }
+
+    const hashedPassword = await argon2.hash(newPassword);
+
+    await Prisma.user.update({
+      where: { id: Number(userId) },
+      data: {
+        password: hashedPassword,
+      },
+    });
+
+    res.status(200).json({
+      isSuccess: true,
+      message: "Password reset successfully!",
+    });
+  } catch (error) {
+    console.error("Reset Password Error:", error);
+    res.status(500).json({
+      isSuccess: false,
+      message: "Internal Server Error",
+    });
   }
 };

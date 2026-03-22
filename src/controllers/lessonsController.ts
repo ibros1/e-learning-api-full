@@ -1,10 +1,138 @@
 import { PrismaClient } from "@prisma/client";
 
 import { Request, Response } from "express";
-import { iCreatedLesson, iUpdatedLesson } from "../../types/lesson.interface";
+import { iCreatedLesson, iUpdatedLesson, iBulkCreatedLesson } from "../../types/lesson.interface";
 import { AuthRequest } from "../../types/request";
+import { uploadToR2 } from "../helpers/uploadService";
 
 const prisma = new PrismaClient();
+
+export const createBulkLessons = async (req: Request, res: Response) => {
+  try {
+    const data: iBulkCreatedLesson = req.body;
+    
+    if (
+      !data.userId ||
+      !data.courseId ||
+      !data.chapterId ||
+      !data.lessons ||
+      data.lessons.length === 0
+    ) {
+      res.status(400).json({
+        isSuccess: false,
+        message: "Validation error: missing required fields",
+      });
+      return;
+    }
+
+    // Validate each lesson has required fields
+    for (const lesson of data.lessons) {
+      if (!lesson.title || !lesson.content || !lesson.video_url) {
+        res.status(400).json({
+          isSuccess: false,
+          message: "Validation error: all lessons must have title, content, and video_url",
+        });
+        return;
+      }
+    }
+
+    // Check user exists
+    const user = await prisma.user.findFirst({
+      where: {
+        id: data.userId,
+      },
+    });
+    if (!user) {
+      res.status(400).json({
+        isSuccess: false,
+        message: "User not found",
+      });
+      return;
+    }
+
+    // Check course exists
+    const course = await prisma.course.findUnique({
+      where: {
+        id: data.courseId,
+      },
+    });
+
+    if (!course) {
+      res.status(404).json({
+        isSuccess: false,
+        message: "Course not found",
+      });
+      return;
+    }
+
+    // Check chapter exists
+    const chapter = await prisma.chapter.findUnique({
+      where: {
+        id: data.chapterId,
+      },
+    });
+
+    if (!chapter) {
+      res.status(404).json({
+        isSuccess: false,
+        message: "Chapter not found",
+      });
+      return;
+    }
+
+    // Create all lessons
+    const createdLessons = await prisma.lessons.createMany({
+      data: data.lessons.map(lesson => ({
+        userId: data.userId,
+        courseId: data.courseId,
+        chapterId: data.chapterId,
+        title: lesson.title,
+        content: lesson.content,
+        video_url: lesson.video_url,
+        is_completed: false,
+      })),
+    });
+
+    // Fetch the created lessons with relations
+    const fetchedLessons = await prisma.lessons.findMany({
+      where: {
+        userId: data.userId,
+        courseId: data.courseId,
+        chapterId: data.chapterId,
+      },
+      include: {
+        chapters: {
+          select: {
+            id: true,
+            chapterTitle: true,
+          },
+        },
+        users: {
+          select: {
+            full_name: true,
+            profilePhoto: true,
+          },
+        },
+      },
+      orderBy: {
+        created_at: 'desc'
+      },
+      take: data.lessons.length
+    });
+
+    res.status(200).json({
+      isSuccess: true,
+      message: `Successfully created ${createdLessons.count} lessons!`,
+      createdLessons: fetchedLessons,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      isSuccess: false,
+      message: "Server error",
+    });
+  }
+};
 
 export const createLessons = async (req: Request, res: Response) => {
   try {
@@ -230,26 +358,34 @@ export const updateLessons = async (req: AuthRequest, res: Response) => {
 
 export const getAllLessons = async (req: Request, res: Response) => {
   try {
-    const lessons = await prisma.lessons.findMany({
-      include: {
-        chapters: {
-          select: {
-            id: true,
-            chapterTitle: true,
-          },
-        },
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const perPage = Math.max(1, parseInt(req.query.limit as string) || 10);
 
-        users: {
-          select: {
-            id: true,
-            full_name: true,
-            profilePhoto: true,
+    const [lessons, total] = await Promise.all([
+      prisma.lessons.findMany({
+        skip: (page - 1) * perPage,
+        take: perPage,
+        include: {
+          chapters: {
+            select: {
+              id: true,
+              chapterTitle: true,
+            },
           },
-        },
 
-        courses: true,
-      },
-    });
+          users: {
+            select: {
+              id: true,
+              full_name: true,
+              profilePhoto: true,
+            },
+          },
+
+          courses: true,
+        },
+      }),
+      prisma.lessons.count(),
+    ]);
     if (!lessons) {
       res.status(404).json({
         isSuccess: false,
@@ -261,6 +397,10 @@ export const getAllLessons = async (req: Request, res: Response) => {
       isSuccess: true,
       message: "successfully fetched!",
       lessons,
+      total,
+      page,
+      perPage,
+      totalPages: Math.ceil(total / perPage),
     });
   } catch (error) {
     console.error(error);
@@ -335,6 +475,34 @@ export const deleteLesson = async (req: Request, res: Response) => {
     res.status(500).json({
       isSuccess: false,
       message: "server error",
+    });
+  }
+};
+
+export const uploadLessonVideo = async (req: AuthRequest, res: Response) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      res.status(400).json({
+        isSuccess: false,
+        message: "No video file provided.",
+      });
+      return;
+    }
+
+    // Pass the file to our R2 upload buffer
+    const publicUrl = await uploadToR2(file);
+
+    res.status(200).json({
+      isSuccess: true,
+      message: "Video uploaded successfully to Cloudflare R2.",
+      videoUrl: publicUrl,
+    });
+  } catch (error) {
+    console.error("Cloudflare R2 Upload Error:", error);
+    res.status(500).json({
+      isSuccess: false,
+      message: "Failed to upload video to the server",
     });
   }
 };

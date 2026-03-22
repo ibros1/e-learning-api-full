@@ -16,18 +16,84 @@ export const markLessonProgress = async (req: Request, res: Response) => {
       return;
     }
 
+    const lesson = await prisma.lessons.findUnique({
+      where: { id: lessonId },
+      select: { id: true, courseId: true },
+    });
+    if (!lesson) {
+      res.status(404).json({
+        isSuccess: false,
+        message: "Lesson not found",
+      });
+      return;
+    }
+
+    if (lesson.courseId !== Number(courseId)) {
+      res.status(400).json({
+        isSuccess: false,
+        message: "Lesson does not belong to this course",
+      });
+      return;
+    }
+
+    const enrollment = await prisma.enrollment.findFirst({
+      where: {
+        userId: Number(userId),
+        courseId: Number(courseId),
+        is_enrolled: true,
+      },
+      select: { id: true },
+    });
+
+    if (!enrollment) {
+      res.status(403).json({
+        isSuccess: false,
+        message: "You are not enrolled in this course",
+      });
+      return;
+    }
+
     const progress = await prisma.lessonProgress.upsert({
       where: {
-        userId_lessonId: { userId, lessonId },
+        userId_lessonId: { userId: Number(userId), lessonId },
       },
       update: {
         isCompleted,
       },
       create: {
-        userId,
+        userId: Number(userId),
         lessonId,
-        courseId,
+        courseId: Number(courseId),
         isCompleted,
+      },
+    });
+
+    const [completedCount, totalLessons] = await Promise.all([
+      prisma.lessonProgress.count({
+        where: {
+          userId: Number(userId),
+          courseId: Number(courseId),
+          isCompleted: true,
+        },
+      }),
+      prisma.lessons.count({
+        where: {
+          courseId: Number(courseId),
+        },
+      }),
+    ]);
+
+    const progressPercent =
+      totalLessons > 0 ? (completedCount / totalLessons) * 100 : 0;
+
+    await prisma.enrollment.updateMany({
+      where: {
+        userId: Number(userId),
+        courseId: Number(courseId),
+      },
+      data: {
+        progress: progressPercent,
+        status: progressPercent >= 100 ? "COMPLETED" : "IN_PROGRESS",
       },
     });
 
@@ -35,6 +101,11 @@ export const markLessonProgress = async (req: Request, res: Response) => {
       isSuccess: true,
       message: "Lesson progress updated",
       progress,
+      stats: {
+        completedCount,
+        totalLessons,
+        progressPercent,
+      },
     });
   } catch (error) {
     console.error(error);
@@ -77,12 +148,33 @@ export const getLessonProgress = async (req: Request, res: Response) => {
       where: {
         id: lessonId,
       },
+      select: {
+        id: true,
+        courseId: true,
+      },
     });
 
     if (!checkLesson) {
       res.status(404).json({
         isSuccess: false,
         message: "Lesson not found!",
+      });
+      return;
+    }
+
+    const enrollment = await prisma.enrollment.findFirst({
+      where: {
+        userId: numericUserId,
+        courseId: checkLesson.courseId,
+        is_enrolled: true,
+      },
+      select: { id: true },
+    });
+
+    if (!enrollment) {
+      res.status(403).json({
+        isSuccess: false,
+        message: "You are not enrolled in this course",
       });
       return;
     }
@@ -96,18 +188,10 @@ export const getLessonProgress = async (req: Request, res: Response) => {
       },
     });
 
-    if (!progress) {
-      res.status(404).json({
-        isSuccess: false,
-        message: "Progress not found",
-      });
-      return;
-    }
-
     res.status(200).json({
       isSuccess: true,
       message: "Progress found",
-      progress,
+      progress: progress || null,
     });
   } catch (error) {
     console.error(error);
@@ -122,6 +206,9 @@ export const getLessonProgress = async (req: Request, res: Response) => {
 export const getCompletedLessons = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
+    const courseId = req.query.courseId
+      ? Number(req.query.courseId)
+      : undefined;
 
     const checkUser = await prisma.user.findUnique({
       where: {
@@ -137,10 +224,44 @@ export const getCompletedLessons = async (req: Request, res: Response) => {
       return;
     }
 
+    if (courseId && Number.isNaN(courseId)) {
+      res.status(400).json({
+        isSuccess: false,
+        message: "Invalid courseId",
+      });
+      return;
+    }
+
+    if (courseId) {
+      const enrollment = await prisma.enrollment.findFirst({
+        where: {
+          userId: Number(userId),
+          courseId,
+          is_enrolled: true,
+        },
+        select: { id: true },
+      });
+
+      if (!enrollment) {
+        res.status(200).json({
+          isSuccess: true,
+          message: "Not enrolled, progress is empty",
+          completed: [],
+          stats: {
+            completedCount: 0,
+            totalLessons: 0,
+            progressPercent: 0,
+          },
+        });
+        return;
+      }
+    }
+
     const completed = await prisma.lessonProgress.findMany({
       where: {
         userId: Number(userId),
         isCompleted: true,
+        ...(courseId ? { courseId } : {}),
       },
       include: {
         lesson: {
@@ -149,7 +270,8 @@ export const getCompletedLessons = async (req: Request, res: Response) => {
               select: {
                 title: true,
                 course_img: true,
-                price: true,
+                price_dlr: true,
+                price_shl: true,
               },
             },
           },
@@ -157,18 +279,22 @@ export const getCompletedLessons = async (req: Request, res: Response) => {
       },
     });
 
-    if (!completed) {
-      res.status(404).json({
-        isSuccess: false,
-        message: "Completed not found!",
-      });
-      return;
-    }
+    const totalLessons = courseId
+      ? await prisma.lessons.count({ where: { courseId } })
+      : 0;
+    const completedCount = completed.length;
+    const progressPercent =
+      courseId && totalLessons > 0 ? (completedCount / totalLessons) * 100 : 0;
 
     res.status(200).json({
       isSuccess: true,
       message: "Fetched completed lessons",
       completed,
+      stats: {
+        completedCount,
+        totalLessons,
+        progressPercent,
+      },
     });
   } catch (error) {
     console.error(error);

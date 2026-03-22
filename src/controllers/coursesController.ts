@@ -27,7 +27,8 @@ export const createCourse = async (req: AuthRequest, res: Response) => {
       !cover_img ||
       !data.preview_course ||
       data.isPublished === undefined ||
-      data.price === undefined
+      data.price_dlr === undefined ||
+      data.price_shl === undefined
     ) {
       res.status(400).json({
         isSuccess: false,
@@ -61,7 +62,8 @@ export const createCourse = async (req: AuthRequest, res: Response) => {
         title: data.title,
         description: data.description,
         is_published: isPublished,
-        price: parseFloat(data.price.toString()),
+        price_dlr: data.price_dlr.toString(),
+        price_shl: data.price_shl,
       },
     });
 
@@ -90,37 +92,44 @@ export const createCourse = async (req: AuthRequest, res: Response) => {
 
 export const getAllCourses = async (req: Request, res: Response) => {
   try {
-    const courses = await prisma.course.findMany({
-      include: {
-        chapters: {
-          include: {
-            lesson: true,
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const perPage = Math.max(1, parseInt(req.query.limit as string) || 10);
+
+    const [courses, total] = await Promise.all([
+      prisma.course.findMany({
+        skip: (page - 1) * perPage,
+        take: perPage,
+        include: {
+          chapters: {
+            include: {
+              lesson: true,
+            },
+          },
+          lesson: true,
+          enrollments: true,
+          users: {
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              full_name: true,
+              profilePhoto: true,
+            },
           },
         },
-        lesson: true,
-        enrollments: true,
-        users: {
-          select: {
-            id: true,
-            username: true,
-            email: true,
-            full_name: true,
-            profilePhoto: true,
-          },
-        },
-      },
-    });
-    if (!courses) {
-      res.status(404).json({
-        isSuccess: false,
-        message: "no course found!",
-      });
-      return;
-    }
+        orderBy: { updated_at: "desc" },
+      }),
+      prisma.course.count(),
+    ]);
+    const totalPages = Math.ceil(total / perPage);
+
     res.status(200).json({
       isSuccess: true,
-      message: "success",
       courses,
+      total,
+      page,
+      perPage,
+      totalPages,
     });
   } catch (error) {
     console.error(error);
@@ -150,7 +159,8 @@ export const updateCourse = async (req: AuthRequest, res: Response) => {
       !data.title ||
       !data.description ||
       data.isPublished === undefined ||
-      data.price === undefined ||
+      data.price_dlr === undefined ||
+      data.price_shl === undefined ||
       !data.preview_course
     ) {
       res.status(400).json({
@@ -188,7 +198,8 @@ export const updateCourse = async (req: AuthRequest, res: Response) => {
         preview_course_url: data.preview_course,
         description: data.description,
         is_published: isPublished,
-        price: Number(data.price),
+        price_dlr: String(data.price_dlr),
+        price_shl: data.price_shl,
       },
     });
     res.status(200).json({

@@ -12,7 +12,7 @@ export function generateInvoiceTemplate({
   fullName: string;
   courseTitle: string;
   courseImage?: string;
-  price: number;
+  price: string;
   status: EnrollmentStatus;
   paymentId?: string;
 }) {
@@ -40,7 +40,7 @@ export function generateInvoiceTemplate({
       
       <!-- Header with Logo -->
       <div style="background-color: #f3f4f6; text-align: center; padding: 20px;">
-        <img src="https://res.cloudinary.com/drgvcohtd/image/upload/v1756720287/real_logo_Surmad_dkekwm.png" alt="Surmad E-Learning" style="height: 60px;" />
+        <img src="https://res.cloudinary.com/drgvcohtd/image/upload/v1756720287/real_logo_Surmad_dkekwm.png" alt="FaceTeacher E-Learning" style="height: 60px;" />
       </div>
 
       <!-- Main Content -->
@@ -63,7 +63,7 @@ export function generateInvoiceTemplate({
               <td style="padding: 15px; vertical-align: top;">
                 <p><strong>Course:</strong> ${courseTitle}</p>
                 <p><strong>Status:</strong> ${status}</p>
-                <p><strong>Price:</strong> $${price.toFixed(2)}</p>
+                <p><strong>Price:</strong> ${price} SLSH</p>
                 ${
                   paymentId
                     ? `<p><strong>Payment ID:</strong> ${paymentId}</p>`
@@ -83,7 +83,7 @@ export function generateInvoiceTemplate({
 
       <!-- Footer -->
       <div style="background-color: #f9fafb; padding: 15px; text-align: center; font-size: 12px; color: #6b7280;">
-        <p>Surmad E-Learning Platform Inc.</p>
+        <p>FaceTeacher E-Learning Platform Inc.</p>
         <p>Need help? <a href="mailto:support@example.com" style="color: #4f46e5; text-decoration: none;">Contact Support</a></p>
       </div>
     </div>

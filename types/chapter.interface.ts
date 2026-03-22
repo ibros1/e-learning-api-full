@@ -9,3 +9,8 @@ export interface iUpdatedChapter {
   courseId: number;
   chapterTitle: string;
 }
+export interface iCreatedBulkChapters {
+  userId: number;
+  courseId: number;
+  chapters: string[];
+}

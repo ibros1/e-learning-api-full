@@ -5,7 +5,8 @@ export interface iCreatedCourse {
   title: string;
   description: string;
   isPublished: boolean;
-  price: number;
+  price_dlr: number;
+  price_shl: string;
 }
 
 export interface iUpdatedCourse {
@@ -16,5 +17,6 @@ export interface iUpdatedCourse {
   title: string;
   description: string;
   isPublished: boolean;
-  price: number;
+  price_dlr: number;
+  price_shl: string;
 }

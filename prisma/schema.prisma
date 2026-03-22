@@ -30,8 +30,8 @@ model user {
   username     String       @unique
   email        String       @unique
   full_name    String
-  profilePhoto String
-  coverPhoto   String
+  profilePhoto String?
+  coverPhoto   String?
   sex          Sex?
   phone_number String
   password     String
@@ -55,7 +55,8 @@ model course {
   title              String
   description        String?
   is_published       Boolean      @default(false)
-  price              Float
+  price_dlr          String
+  price_shl          String
   created_at         DateTime     @default(now())
   updated_at         DateTime     @updatedAt
   users              user         @relation(fields: [userId], references: [id])

@@ -52,6 +52,24 @@ export const createEnrollement = async (req: Request, res: Response) => {
       });
       return;
     }
+    const activeEnrollmentCheck = await prisma.enrollment.findFirst({
+      where: {
+        userId: data.userId,
+        courseId: data.courseId,
+        status: {
+          in: ["COMPLETED", "IN_PROGRESS", "PENDING", "PROCESSING"] as any[]
+        }
+      }
+    });
+
+    if (activeEnrollmentCheck) {
+      res.status(400).json({
+        isSuccess: false,
+        message: "User already holds an active or pending enrollment for this course.",
+      });
+      return;
+    }
+
     const enrollement = await prisma.enrollment.create({
       data: {
         userId: data.userId,
@@ -79,7 +97,7 @@ export const createEnrollement = async (req: Request, res: Response) => {
       fullName: enrollement.users.full_name,
       courseImage: enrollement.course.course_img,
       courseTitle: enrollement.course.title,
-      price: enrollement.course.price,
+      price: enrollement.course.price_shl,
       status: enrollement.status,
     });
 
@@ -168,6 +186,7 @@ export const updateEnrollement = async (req: Request, res: Response) => {
       data: {
         status: data.status,
         is_enrolled: data.isEnrolled,
+        progress: data.isEnrolled ? undefined : 0,
       },
       include: {
         users: { select: { full_name: true, email: true } },
@@ -175,12 +194,29 @@ export const updateEnrollement = async (req: Request, res: Response) => {
       },
     });
 
+    if (!completedEnrollement.is_enrolled) {
+      await prisma.lessonProgress.deleteMany({
+        where: {
+          userId: completedEnrollement.userId,
+          courseId: completedEnrollement.courseId,
+        },
+      });
+
+      await prisma.enrollment.update({
+        where: { id: completedEnrollement.id },
+        data: {
+          progress: 0,
+          status: EnrollmentStatus.IN_PROGRESS,
+        },
+      });
+    }
+
     // ✅ Send invoice email on update
     const invoiceHtml = generateInvoiceTemplate({
       fullName: completedEnrollement.users.full_name,
       courseImage: completedEnrollement.course.course_img,
       courseTitle: completedEnrollement.course.title,
-      price: completedEnrollement.course.price,
+      price: completedEnrollement.course.price_shl,
       status: completedEnrollement.status,
     });
 
@@ -242,25 +278,33 @@ export const getOneEnroll = async (req: Request, res: Response) => {
 
 export const getAllEnrollements = async (req: Request, res: Response) => {
   try {
-    const enrollemnets = await prisma.enrollment.findMany({
-      include: {
-        users: {
-          select: {
-            profilePhoto: true,
-            full_name: true,
-            email: true,
-            phone_number: true,
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const perPage = Math.max(1, parseInt(req.query.limit as string) || 10);
+
+    const [enrollemnets, total] = await Promise.all([
+      prisma.enrollment.findMany({
+        skip: (page - 1) * perPage,
+        take: perPage,
+        include: {
+          users: {
+            select: {
+              profilePhoto: true,
+              full_name: true,
+              email: true,
+              phone_number: true,
+            },
+          },
+          course: {
+            include: {
+              chapters: true,
+              lesson: true,
+              enrollments: true,
+            },
           },
         },
-        course: {
-          include: {
-            chapters: true,
-            lesson: true,
-            enrollments: true,
-          },
-        },
-      },
-    });
+      }),
+      prisma.enrollment.count(),
+    ]);
     if (!enrollemnets) {
       res.status(404).json({
         isSuccess: false,
@@ -272,6 +316,10 @@ export const getAllEnrollements = async (req: Request, res: Response) => {
       isSuccess: true,
       message: "successfullt fetched!",
       enrollemnets,
+      total,
+      page,
+      perPage,
+      totalPages: Math.ceil(total / perPage),
     });
   } catch (error) {
     console.error(error);
@@ -298,6 +346,14 @@ export const deleteEnroll = async (req: Request, res: Response) => {
       });
       return;
     }
+
+    await prisma.lessonProgress.deleteMany({
+      where: {
+        userId: existEnrollement.userId,
+        courseId: existEnrollement.courseId,
+      },
+    });
+
     const deletingEnroll = await prisma.enrollment.delete({
       where: {
         id: enrollId,

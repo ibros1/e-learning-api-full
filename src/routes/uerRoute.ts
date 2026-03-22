@@ -8,6 +8,7 @@ import {
   loginUser,
   updateRole,
   updateUser,
+  resetUserPassword,
 } from "../controllers/userController";
 import { loginUserSchema, registerUserSchema } from "../../schema/user";
 import { validtionMidlleware } from "../../middleware/validation";
@@ -30,10 +31,10 @@ router.post(
   // Then validate
   registerUserSchema,
   validtionMidlleware,
-  createUser
+  createUser,
 );
 router.post("/login", loginUserSchema, validtionMidlleware, loginUser);
-router.get("/list", getAllUsers);
+router.get("/list", authorize(["ADMIN"]), getAllUsers);
 router.get("/list/:userId", getOneUser);
 
 router.put(
@@ -43,7 +44,7 @@ router.put(
     { name: "profilePhoto", maxCount: 1 },
     { name: "coverPhoto", maxCount: 1 },
   ]),
-  updateUser
+  updateUser,
 );
 
 router.put("/role/update", authenticate, authorize(["ADMIN"]), updateRole);
@@ -53,7 +54,14 @@ router.delete(
   "/delete/:userId",
   authenticate,
   authorize(["ADMIN"]),
-  deleteUser
+  deleteUser,
+);
+
+router.patch(
+  "/reset-password",
+  authenticate,
+  authorize(["ADMIN"]),
+  resetUserPassword,
 );
 
 export default router;

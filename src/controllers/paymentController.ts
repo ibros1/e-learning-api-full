@@ -58,6 +58,24 @@ export const createPayment = async (req: Request, res: Response) => {
       return;
     }
 
+    const activeEnrollment = await prisma.enrollment.findFirst({
+      where: {
+        userId: data.userId,
+        courseId: data.courseId,
+        status: {
+          in: ["COMPLETED", "IN_PROGRESS", "PENDING", "PROCESSING"] as any[]
+        }
+      }
+    });
+
+    if (activeEnrollment) {
+      res.status(400).json({
+        isSuccess: false,
+        message: "User already has an active or pending enrollment for this course.",
+      });
+      return;
+    }
+
     const payment = await prisma.payment.create({
       data: {
         userId: data.userId,
@@ -198,21 +216,29 @@ export const getPaymentById = async (req: Request, res: Response) => {
   }
 };
 
-export const getAllPayments = async (_req: Request, res: Response) => {
+export const getAllPayments = async (req: Request, res: Response) => {
   try {
-    const payments = await prisma.payment.findMany({
-      include: {
-        user: {
-          select: {
-            full_name: true,
-            email: true,
-            profilePhoto: true,
-            role: true,
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const perPage = Math.max(1, parseInt(req.query.limit as string) || 10);
+
+    const [payments, total] = await Promise.all([
+      prisma.payment.findMany({
+        skip: (page - 1) * perPage,
+        take: perPage,
+        include: {
+          user: {
+            select: {
+              full_name: true,
+              email: true,
+              profilePhoto: true,
+              role: true,
+            },
           },
+          course: true,
         },
-        course: true,
-      },
-    });
+      }),
+      prisma.payment.count(),
+    ]);
     if (!payments) {
       res.status(400).json({
         isSuccess: false,
@@ -224,6 +250,10 @@ export const getAllPayments = async (_req: Request, res: Response) => {
       isSuccess: true,
       message: "success",
       payments,
+      total,
+      page,
+      perPage,
+      totalPages: Math.ceil(total / perPage),
     });
   } catch (error) {
     console.error(error);
